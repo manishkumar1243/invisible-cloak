@@ -1,0 +1,56 @@
+import cv2
+import numpy as np
+import time
+
+# Open webcam
+cap = cv2.VideoCapture(0)
+time.sleep(2)    # Let the camera warm up
+
+# Capture background (for 30 frames)
+for i in range(30):
+    ret, background = cap.read()
+
+background = np.flip(background, axis=1)
+
+print("Invisible cloak is running. Press 'q' to quit.")
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame = np.flip(frame, axis=1)
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # ---------------------------
+    # YELLOW Color Range
+    # ---------------------------
+    lower_yellow = np.array([20, 100, 100])
+    upper_yellow = np.array([30, 255, 255])
+
+    # Mask for yellow
+    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    # Clean mask
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
+    mask = cv2.dilate(mask, np.ones((3,3), np.uint8), iterations=1)
+
+    # Inverse mask
+    mask_inv = cv2.bitwise_not(mask)
+
+    # Show background on yellow regions
+    cloak = cv2.bitwise_and(background, background, mask=mask)
+
+    # Show normal frame on non-yellow regions
+    rest = cv2.bitwise_and(frame, frame, mask=mask_inv)
+
+    final = cv2.addWeighted(cloak, 1, rest, 1, 0)
+
+    cv2.imshow("Invisible Cloak (Yellow)", final)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
